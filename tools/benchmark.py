@@ -1,78 +1,70 @@
 '''
-Benchmark script for Stable Diffusion
+Benchmark script for Stable Diffusion. Also logs benchmark results to wandb (requires login)
 '''
+from pprint import pprint
+import numpy as np
+import yaml
+
+import wandb
 
 import torch
-from torch import autocast
-from diffusers import StableDiffusionPipeline
-from torchmetrics.functional.multimodal import clip_score
-from functools import partial
-from torch.profiler import profile, record_function, ProfilerActivity
 
-import numpy as np
+from sdPipelineBuilder import getSDPipeline
+from benchmark_tools import generate_images, save_images, calculate_clip_score
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('*'*60)
 print('[*] Device: ', device)
 
-MODEL_CKPT = 'runwayml/stable-diffusion-v1-5'
-
-prompts = [
-    "a photo of an astronaut riding a horse on mars",
-    "A high tech solarpunk utopia in the Amazon rainforest",
-    "A pikachu fine dining with a view to the Eiffel Tower",
-    "A mecha robot in a favela in expressionist style",
-    "an insect robot preparing a delicious meal",
-    "A small cabin on top of a snowy mountain in the style of Disney, artstation",
-]
-
-inference_config = {
-    "height": 512,
-    "width": 512,
-    "negative prompt": "ugly, deformed",
-    "num_images_per_prompt": 1,
-    "num_inference_steps": 30,
-    "guidance_scale": 7.5
-}
-
-def getSDPipeline():
-    pipe = StableDiffusionPipeline.from_pretrained(MODEL_CKPT, torch_dtype=torch.float32)
-    return pipe
-
-clip_score_fn = partial(clip_score, model_name_or_path="openai/clip-vit-base-patch16")
-
-def calculate_clip_score(images, prompts):
-    images_int = (images * 255).astype("uint8")
-    clip_score = clip_score_fn(torch.from_numpy(images_int).permute(0, 3, 1, 2), prompts).detach()
-    return round(float(clip_score), 4)
+with open("config.yaml") as f:
+    cfg = yaml.safe_load(f)
 
 def benchmark():
-    sdPipeline = getSDPipeline()
-    sdPipeline.to(device)
-    
-    rng = torch.Generator(device=device) #Generator for seed
-    seed = 1337
-    rng.manual_seed(seed)
-    gen_imgs = []
-    
-    with autocast(device_type=device), torch.inference_mode():
-        with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True, profile_memory=True) as prof:
-            for prompt in prompts:
-                with record_function("model_inference"):
-                    images = sdPipeline(
-                        prompt=prompt,
-                        generator=rng,
-                        **inference_config
-                    ).images
-                gen_imgs.extend(images)
-    print('[*] Generated images: ', len(gen_imgs))
-    print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
+    with wandb.init(entity='columbia-cs', 
+                    project='stable-diffusion-optimization', 
+                    name=cfg['run_name'],
+                    config = cfg) as run:
+        print('[*] Building StableDiffusionPipeline...')
+        pipe = getSDPipeline()
+        pipe.to(device)
+        rng = torch.Generator(device=device) #Generator for seeding
+        seed = 1337
+        rng.manual_seed(seed)
 
-    images_np = np.stack([np.array(img) for img in gen_imgs])
-    sd_clip_score = calculate_clip_score(images_np, prompts)
-    print(f"CLIP score: {sd_clip_score}")
+        if cfg['jit_compile']:
+            #Do one inference to build computation graph
+            print('[*] JIT Compile, running inference to build graph...')
+            with torch.inference_mode():
+                _ = pipe(
+                        prompt=cfg['prompts'][0],
+                        generator=rng,
+                        **cfg['inference_config']
+                )
+
+        print('[*] Running Benchmark...')
+        gen_imgs, benchmark_result = generate_images(
+            sdPipeline=pipe,
+            device=device,
+            rng=rng)
+
+        images_np = np.stack([np.array(img) for img in gen_imgs])
+        sd_clip_score = calculate_clip_score(images_np, cfg['prompts'])
+        print(f"[*] CLIP score: {sd_clip_score}")
+        # savepath = cfg['run_name']+'/'
+        # print(f'[*] Saving images to {savepath}...')
+        # save_images(gen_imgs)
+
+        #Log to wandb
+        run.log({"inference_time": benchmark_result})
+        run.log({"CLIP_score": sd_clip_score})
+        log_images = []
+        for i, img in enumerate(gen_imgs):
+            p = cfg['prompts'][i]
+            image = wandb.Image(img, caption=f'Generated Image: {p}')
+            log_images.append(image)
+        run.log({"generated_images": log_images})
 
 if __name__ == "__main__":
+    print('[*] Specified Benchmark Config:')
+    pprint(cfg)
     benchmark()
-    
-    

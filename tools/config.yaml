@@ -1,0 +1,41 @@
+#YAML Config for benchmarking
+
+run_name: sdbenchmark_tome0.2
+
+model_path: runwayml/stable-diffusion-v1-5 #Path to SD model on HuggingFace. Can be changed if using distlled stable diffusion
+                                           #segmind/small-sd
+
+#Quantization
+precision: single #single, half
+autocast: false #automatic mixed precision torch.autocast
+
+#Attention mechanism
+attention: SDPA #SDPA OR xFormers OR vanilla OR sliced, SDPA is the default (also enabled by default in PyTorch 2.0+)
+
+#Token merging
+token_merging:
+  use_tome: true
+  ratio: 0.2 #Ratio in range [0.0, 1.0]
+
+#JIT compilation
+jit_compile: false
+
+#Prompt config
+prompts:
+  - a photo of an astronaut riding a horse on mars
+  - A high tech solarpunk utopia in the Amazon rainforest
+  - A pikachu fine dining with a view to the Eiffel Tower
+  - A mecha robot in a favela in expressionist style
+  - an insect robot preparing a delicious meal
+  - A small cabin on top of a snowy mountain in the style of Disney, artstation
+
+#Inference config for image generation
+inference_config:
+  height: 512
+  width: 512
+  negative_prompt: ugly, deformed
+  num_images_per_prompt: 1
+  num_inference_steps: 30
+  guidance_scale: 7.5
+
+
