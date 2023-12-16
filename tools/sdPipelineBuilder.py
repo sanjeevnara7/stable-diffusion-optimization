@@ -6,7 +6,7 @@ Uses the config.yaml file to set up the pipeline.
 import yaml
 
 import torch
-from diffusers import StableDiffusionPipeline
+from diffusers import StableDiffusionPipeline, AutoencoderTiny
 from diffusers.models.attention_processor import AttnProcessor2_0, XFormersAttnProcessor
 import tomesd
 
@@ -39,6 +39,10 @@ def getSDPipeline():
     #Token merging
     if cfg['token_merging']['use_tome']:
         tomesd.apply_patch(pipe, ratio=cfg['token_merging']['ratio'])
+
+    #Tiny autoencoder
+    if cfg['tiny_autoencoder']:
+        pipe.vae = AutoencoderTiny.from_pretrained("madebyollin/taesd", torch_dtype=torch_dtype)
 
     #JIT
     if cfg['jit_compile']:

@@ -1,12 +1,14 @@
 #YAML Config for benchmarking
 
-run_name: sdbenchmark_tome0.2
+run_name: sdbenchmark_tinyAE_fp16
 
 model_path: runwayml/stable-diffusion-v1-5 #Path to SD model on HuggingFace. Can be changed if using distlled stable diffusion
+                                           #runwayml/stable-diffusion-v1-5
                                            #segmind/small-sd
+                                           #segmind/tiny-sd 
 
 #Quantization
-precision: single #single, half
+precision: half #single, half
 autocast: false #automatic mixed precision torch.autocast
 
 #Attention mechanism
@@ -14,8 +16,11 @@ attention: SDPA #SDPA OR xFormers OR vanilla OR sliced, SDPA is the default (als
 
 #Token merging
 token_merging:
-  use_tome: true
-  ratio: 0.2 #Ratio in range [0.0, 1.0]
+  use_tome: false
+  ratio: 0.5 #Ratio in range [0.0, 1.0]
+
+#Tiny Autoencoder
+tiny_autoencoder: True
 
 #JIT compilation
 jit_compile: false
