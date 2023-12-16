@@ -1,6 +1,6 @@
 #YAML Config for benchmarking
 
-run_name: sdbenchmark_tinyAE_fp16
+run_name: sdbenchmark_fp16_jit
 
 model_path: runwayml/stable-diffusion-v1-5 #Path to SD model on HuggingFace. Can be changed if using distlled stable diffusion
                                            #runwayml/stable-diffusion-v1-5
@@ -20,10 +20,10 @@ token_merging:
   ratio: 0.5 #Ratio in range [0.0, 1.0]
 
 #Tiny Autoencoder
-tiny_autoencoder: True
+tiny_autoencoder: false
 
 #JIT compilation
-jit_compile: false
+jit_compile: true
 
 #Prompt config
 prompts:

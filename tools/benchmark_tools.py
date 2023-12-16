@@ -20,6 +20,7 @@ def benchmark_timer(n_reps):
             start.record()
             res = func(*args, **kwargs)
             end.record()
+            torch.cuda.synchronize()
             benchmark_res = ((start.elapsed_time(end))/n_reps)/1000
             print(f'[*] Number of Reps: {n_reps}, Elapsed time (per rep): {benchmark_res} s')
             return res, benchmark_res
