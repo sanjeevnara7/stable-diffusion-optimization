@@ -12,7 +12,7 @@ from functools import partial
 with open("config.yaml") as f:
     cfg = yaml.safe_load(f)
 
-#Decorater function to time events
+#Decorator function to time events
 def benchmark_timer(n_reps):
     def _decorator(func):
         def inner(*args, **kwargs):

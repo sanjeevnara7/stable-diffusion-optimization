@@ -31,7 +31,7 @@ def benchmark():
         seed = 1337
         rng.manual_seed(seed)
 
-        if cfg['jit_compile']:
+        if cfg['jit_compile']['use_jit']:
             #Do one inference to build computation graph
             print('[*] JIT Compile, running inference to build graph...')
             with torch.inference_mode():

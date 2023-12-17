@@ -1,14 +1,16 @@
 #YAML Config for benchmarking
 
-run_name: sdbenchmark_fp16_jit
+#Run name for wandb logging
+run_name: sdbenchmark_fp16_tome0.5_distilledsdTiny_tinyAE_jit-vae+unet
 
-model_path: runwayml/stable-diffusion-v1-5 #Path to SD model on HuggingFace. Can be changed if using distlled stable diffusion
-                                           #runwayml/stable-diffusion-v1-5
-                                           #segmind/small-sd
-                                           #segmind/tiny-sd 
+#Path to SD model on HuggingFace. Can be changed if using distlled stable diffusion
+  #base: runwayml/stable-diffusion-v1-5
+  #distilled-small: segmind/small-sd
+  #distilled-tiny: segmind/tiny-sd 
+model_path: segmind/tiny-sd
 
 #Quantization
-precision: half #single, half
+precision: half #single, half, int (int8)
 autocast: false #automatic mixed precision torch.autocast
 
 #Attention mechanism
@@ -20,10 +22,14 @@ token_merging:
   ratio: 0.5 #Ratio in range [0.0, 1.0]
 
 #Tiny Autoencoder
-tiny_autoencoder: false
+tiny_autoencoder: true
 
 #JIT compilation
-jit_compile: true
+jit_compile:
+  use_jit: true
+  components: #Specify which components to compile (unet, vae, or both)
+    - vae
+    - unet
 
 #Prompt config
 prompts:

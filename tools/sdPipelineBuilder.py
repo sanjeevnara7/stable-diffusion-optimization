@@ -19,10 +19,10 @@ def getSDPipeline():
     Build a stable diffusion pipeline based on the config.yaml file.
     '''
     #Precision
-    if cfg['precision'] == 'single':
-        torch_dtype = torch.float32
-    else:
+    if cfg['precision'] == 'half':
         torch_dtype = torch.float16
+    else:
+        torch_dtype = torch.float32
 
     pipe = StableDiffusionPipeline.from_pretrained(cfg['model_path'], torch_dtype=torch_dtype)
     
@@ -45,7 +45,10 @@ def getSDPipeline():
         pipe.vae = AutoencoderTiny.from_pretrained("madebyollin/taesd", torch_dtype=torch_dtype)
 
     #JIT
-    if cfg['jit_compile']:
-        pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
+    if cfg['jit_compile']['use_jit']:
+        if 'unet' in cfg['jit_compile']['components']:
+            pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
+        if 'vae' in cfg['jit_compile']['components']:
+            pipe.vae = torch.compile(pipe.vae, mode="reduce-overhead", fullgraph=True)
     
     return pipe
